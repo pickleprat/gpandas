@@ -2,6 +2,7 @@ package gpandas
 
 import (
 	"gpandas/dataframe"
+	"gpandas/utils/collection"
 )
 
 type float_column struct {
@@ -21,6 +22,7 @@ func (gpandas) DataFrame(columns []string, data map[string][]interface{}) (*data
 	if err != nil {
 		return nil, err
 	}
+	cols_compare := collection.NewSet[string]()
 	df := &dataframe.DataFrame{data: data}
 	return df, nil
 }

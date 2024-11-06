@@ -78,6 +78,34 @@ func (s Set[T]) Union(s2 Set[T]) (Set[T], error) {
 	return res, nil
 }
 
+// Slice converts a Set of type T into a slice of type []T.
+// It iterates over the elements of the set and appends them to a slice.
+// The resulting slice contains all the elements from the set in an arbitrary order.
+//
+// Parameters:
+//   s: A Set[T] from which to create the slice.
+//
+// Returns:
+//   A slice of type []T containing all elements from the input set.
+func ToSlice[T comparable](s Set[T]) ([]T, error) {
+	result_slice := make([]T, 0, len(s))
+	for k := range s {
+		result_slice = append(result_slice, k)
+	}
+	return result_slice, nil
+}
+
+func ToSet[T comparable](slice []T) (Set[T], error) {
+	result_set, err := NewSet[T]()
+	if err != nil {
+		return nil, err
+	}
+	for i := range slice {
+		result_set[slice[i]] = struct{}{}
+	}
+	return result_set, nil
+}
+
 // Intersect creates a new Set containing only elements that exist in both sets.
 func (s Set[T]) Intersect(s2 Set[T]) (Set[T], error) {
 	res, err := NewSet[T]()
