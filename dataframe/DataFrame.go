@@ -2,15 +2,17 @@ package dataframe
 
 import (
 	"errors"
+	"gpandas/utils/collection"
 	"sync"
 )
 
-func get_map_keys(input_map map[interface{}]interface{}) ([]interface{}, error){
-	i := 0
-	keys := make([]interface{}, 0, len(input_map))
+func GetMapKeys[K comparable, V any](input_map map[K]V) (collection.Set[K], error) {
+	keys, err := collection.NewSet[K]()
+	if err != nil {
+		return nil, err
+	}
 	for k := range input_map {
-		keys[i] = k
-		i++
+		keys.Add(k)
 	}
 	return keys, nil
 }
@@ -26,13 +28,10 @@ func rename(df *DataFrame, columns map[string]string) error {
 	if len(columns) == 0 {
 		return errors.New("'columns' slice is empty. Slice of Maps to declare columns to rename is required")
 	}
-	keys := make([]string, 0, len(columns))
-	i := 0
-	for k := range columns {
-		keys[i] = k
-		i++
+	keys, err := GetMapKeys(columns)
+	if err != nil {
+		return err
 	}
-	for colu
 
 	df.Lock()
 	df.Unlock()
