@@ -135,3 +135,19 @@ func (s Set[T]) Difference(s2 Set[T]) (Set[T], error) {
 	}
 	return res, nil
 }
+
+func (s Set[T]) Compare(s2 Set[T]) (bool, any) {
+	// Check if lengths are the same
+	if len(s) != len(s2) {
+		return false, nil
+	}
+
+	// Check if all keys in s are in s2
+	for item := range s {
+		if _, exists := s2[item]; !exists {
+			return false, item
+		}
+	}
+
+	return true, nil
+}

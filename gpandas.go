@@ -22,7 +22,11 @@ func (gpandas) DataFrame(columns []string, data map[string][]interface{}) (*data
 	if err != nil {
 		return nil, err
 	}
-	cols_compare := collection.NewSet[string]()
+	cols_compare, err2 := collection.NewSet[string]()
+	if err2 != nil {
+		return nil, err2
+	}
+
 	df := &dataframe.DataFrame{data: data}
 	return df, nil
 }
