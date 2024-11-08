@@ -19,9 +19,8 @@ func GetMapKeys[K comparable, V any](input_map map[K]V) (collection.Set[K], erro
 
 type DataFrame struct {
 	sync.Mutex
-	len          int64
-	column_names []string
-	data         map[string][]interface{}
+	Columns []string
+	Data    [][]any
 }
 
 func (df *DataFrame) rename(columns map[string]string) error {
@@ -60,7 +59,14 @@ func (df *DataFrame) rename(columns map[string]string) error {
 		return errors.New("the columns specified in 'columns' parameter is not present in the the DataFrame")
 	}
 
+	// all conditions met till this point
+	for original_column_name := range columns {
+		for df_column_idx := range df.column_names {
+			if df.column_names[df_column_idx] == original_column_name {
+				df.column_names[df_column_idx] = original_column_name
+			}
+		}
+	}
 	df.Unlock()
 	return nil
-
 }
