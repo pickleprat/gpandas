@@ -21,7 +21,7 @@ GPandas requires Go version 1.18 or above (for generics support).
 
 ### Installation
 
-```go
+```bash
 go get github.com/apoplexi24/gpandas
 ```
 
