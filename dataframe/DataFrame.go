@@ -38,35 +38,32 @@ func (df *DataFrame) rename(columns map[string]string) error {
 
 	// locking df and unlocking if facing error or after finished processing
 	df.Lock()
-	dfcols, err2 := collection.ToSet(df.column_names)
+	defer df.Unlock()
+
+	dfcols, err2 := collection.ToSet(df.Columns)
 	if err2 != nil {
-		df.Unlock()
 		return err2
 	}
 
 	keys_dfcols_set_intersect, err3 := keys.Intersect(dfcols)
 	if err3 != nil {
-		df.Unlock()
 		return err3
 	}
 
 	is_equal_cols, false_val := keys.Compare(keys_dfcols_set_intersect)
 	if !is_equal_cols && false_val != nil {
-		df.Unlock()
 		return errors.New("the column '" + false_val.(string) + "' is not present in DataFrame. Specify correct values as keys in columns map")
 	} else if !is_equal_cols && false_val == nil {
-		df.Unlock()
 		return errors.New("the columns specified in 'columns' parameter is not present in the the DataFrame")
 	}
 
 	// all conditions met till this point
-	for original_column_name := range columns {
-		for df_column_idx := range df.column_names {
-			if df.column_names[df_column_idx] == original_column_name {
-				df.column_names[df_column_idx] = original_column_name
+	for original_column_name, new_column_name := range columns {
+		for df_column_idx := range df.Columns {
+			if df.Columns[df_column_idx] == original_column_name {
+				df.Columns[df_column_idx] = new_column_name
 			}
 		}
 	}
-	df.Unlock()
 	return nil
 }
