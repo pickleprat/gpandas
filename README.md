@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/2a0d2716-33ec-449d-a5fc-a9f95b8df9d9" />
+</p>
+
 # GPandas
 
 GPandas is a data manipulation and analysis library written in Go. It provides high-performance, easy-to-use data structures and tools for working with structured data, inspired by Python's pandas library.
