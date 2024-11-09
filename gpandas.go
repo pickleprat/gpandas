@@ -1,22 +1,26 @@
 package gpandas
 
 import (
+	"encoding/csv"
 	"errors"
 	"fmt"
 	"gpandas/dataframe"
+	"os"
 )
 
+type gpandas struct{}
+
 // FloatColumn represents a slice of float64 values.
-type FloatColumn []float64
+type FloatCol []float64
 
 // StringColumn represents a slice of string values.
-type StringColumn []string
+type StringCol []string
 
 // IntColumn represents a slice of int64 values.
-type IntColumn []int64
+type IntCol []int64
 
 // BoolColumn represents a slice of bool values.
-type BoolColumn []bool
+type BoolCol []bool
 
 // Column represents a slice of any type.
 type Column []any
@@ -24,6 +28,42 @@ type Column []any
 // TypeColumn represents a slice of a comparable type T.
 type TypeColumn[T comparable] []T
 
+func FloatColumn(col []any) ([]float64, error) {
+	floatCol := make(FloatCol, len(col))
+	for i, v := range col {
+		if val, ok := v.(float64); ok {
+			floatCol[i] = val
+		} else {
+			return nil, fmt.Errorf("invalid type for column %d: expected float64, got %T", i, v)
+		}
+	}
+	return floatCol, nil
+}
+
+// DataFrame creates a new DataFrame from the provided columns, data, and column types.
+//
+// It validates the input parameters to ensure data consistency and proper type definitions.
+//
+// The function performs several validation checks:
+// - Ensures column_types map is provided
+// - Verifies at least one column name is present
+// - Checks that data is not empty
+// - Confirms the number of columns matches the data columns
+// - Validates all columns have the same length
+// - Ensures type definitions exist for all columns
+//
+// The data is then converted to the internal DataFrame format, performing type assertions
+// based on the specified column types (FloatCol, IntCol, StringCol, BoolCol).
+//
+// Parameters:
+//
+//	columns: A slice of strings representing column names
+//	data: A slice of Columns containing the actual data
+//	columns_types: A map defining the expected type for each column
+//
+// Returns:
+//
+//	A pointer to a DataFrame containing the processed data, or an error if validation fails
 func (gpandas) DataFrame(columns []string, data []Column, columns_types map[string]any) (*dataframe.DataFrame, error) {
 	// Validate inputs
 	if columns_types == nil {
@@ -69,27 +109,27 @@ func (gpandas) DataFrame(columns []string, data []Column, columns_types map[stri
 		for j, val := range col {
 			// Type assertion based on columns_types using defined types
 			switch columns_types[columns[i]].(type) {
-			case FloatColumn:
+			case FloatCol:
 				if v, ok := val.(float64); ok {
-					df.Data[i][j] = FloatColumn{v}
+					df.Data[i][j] = FloatCol{v}
 				} else {
 					return nil, fmt.Errorf("type mismatch for column %s: expected FloatColumn, got %T", columns[i], val)
 				}
-			case IntColumn:
+			case IntCol:
 				if v, ok := val.(int64); ok {
-					df.Data[i][j] = IntColumn{v}
+					df.Data[i][j] = IntCol{v}
 				} else {
 					return nil, fmt.Errorf("type mismatch for column %s: expected IntColumn, got %T", columns[i], val)
 				}
-			case StringColumn:
+			case StringCol:
 				if v, ok := val.(string); ok {
-					df.Data[i][j] = StringColumn{v}
+					df.Data[i][j] = StringCol{v}
 				} else {
 					return nil, fmt.Errorf("type mismatch for column %s: expected StringColumn, got %T", columns[i], val)
 				}
-			case BoolColumn:
+			case BoolCol:
 				if v, ok := val.(bool); ok {
-					df.Data[i][j] = BoolColumn{v}
+					df.Data[i][j] = BoolCol{v}
 				} else {
 					return nil, fmt.Errorf("type mismatch for column %s: expected BoolColumn, got %T", columns[i], val)
 				}
@@ -102,4 +142,77 @@ func (gpandas) DataFrame(columns []string, data []Column, columns_types map[stri
 	return df, nil
 }
 
-type gpandas struct{}
+// Read_csv reads a CSV file from the specified filepath and converts it into a DataFrame.
+//
+// It opens the CSV file, reads the header to determine the column names, and then reads all the records.
+//
+// The function checks for errors during file operations and ensures that the CSV file is not empty.
+//
+// It initializes data columns based on the number of headers and populates them with the corresponding values from the records.
+//
+// If the number of columns in any row is inconsistent with the header, an error is returned.
+//
+// The function also creates a map of column types, defaulting to StringCol for all columns.
+//
+// Finally, it calls the DataFrame constructor to create and return a DataFrame containing the data from the CSV file.
+//
+// Parameters:
+//
+//	filepath: A string representing the path to the CSV file to be read.
+//
+// Returns:
+//
+//	A pointer to a DataFrame containing the data from the CSV file, or an error if the operation fails.
+func (gpandas) Read_csv(filepath string) (*dataframe.DataFrame, error) {
+	// Open the CSV file
+	file, err := os.Open(filepath)
+	if err != nil {
+		return nil, fmt.Errorf("error opening file: %w", err)
+	}
+	defer file.Close()
+
+	// Create CSV reader
+	reader := csv.NewReader(file)
+
+	// Read header
+	headers, err := reader.Read()
+	if err != nil {
+		return nil, fmt.Errorf("error reading headers: %w", err)
+	}
+
+	// Read all records
+	records, err := reader.ReadAll()
+	if err != nil {
+		return nil, fmt.Errorf("error reading records: %w", err)
+	}
+
+	if len(records) == 0 {
+		return nil, errors.New("CSV file is empty")
+	}
+
+	// Initialize data columns
+	columnCount := len(headers)
+	data := make([]Column, columnCount)
+	for i := range data {
+		data[i] = make(Column, len(records))
+	}
+
+	// Populate data columns
+	for i, row := range records {
+		if len(row) != columnCount {
+			return nil, fmt.Errorf("inconsistent column count in row %d", i+1)
+		}
+		for j, val := range row {
+			data[j][i] = val
+		}
+	}
+
+	// Create columns_types map (default to string type)
+	columns_types := make(map[string]any)
+	for _, header := range headers {
+		columns_types[header] = StringCol{}
+	}
+
+	// Create DataFrame using existing DataFrame function
+	return gpandas{}.DataFrame(headers, data, columns_types)
+}
