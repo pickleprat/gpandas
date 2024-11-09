@@ -23,7 +23,7 @@ type DataFrame struct {
 	Data    [][]any
 }
 
-func (df *DataFrame) rename(columns map[string]string) error {
+func (df *DataFrame) Rename(columns map[string]string) error {
 	if len(columns) == 0 {
 		return errors.New("'columns' slice is empty. Slice of Maps to declare columns to rename is required")
 	}
