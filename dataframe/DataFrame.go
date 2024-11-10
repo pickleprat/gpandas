@@ -1,9 +1,13 @@
 package dataframe
 
 import (
+	"bytes"
 	"errors"
+	"fmt"
 	"gpandas/utils/collection"
 	"sync"
+
+	"github.com/olekukonko/tablewriter"
 )
 
 func GetMapKeys[K comparable, V any](input_map map[K]V) (collection.Set[K], error) {
@@ -66,4 +70,41 @@ func (df *DataFrame) Rename(columns map[string]string) error {
 		}
 	}
 	return nil
+}
+
+func (df *DataFrame) String() string {
+	var buf bytes.Buffer
+	table := tablewriter.NewWriter(&buf)
+
+	// Set table properties
+	// TODO: Instantiate this in package level
+	table.SetAutoWrapText(false)
+	table.SetAutoFormatHeaders(true)
+	table.SetHeaderAlignment(tablewriter.ALIGN_LEFT)
+	table.SetAlignment(tablewriter.ALIGN_LEFT)
+	table.SetCenterSeparator("|")
+	table.SetColumnSeparator("|")
+	table.SetRowSeparator("-")
+	table.SetHeaderLine(true)
+	table.SetBorder(true)
+
+	// Set headers
+	table.SetHeader(df.Columns)
+
+	// Convert data to strings and add to table
+	for _, row := range df.Data {
+		stringRow := make([]string, len(row))
+		for i, val := range row {
+			stringRow[i] = fmt.Sprintf("%v", val)
+		}
+		table.Append(stringRow)
+	}
+
+	// Add row count information
+	numRows := len(df.Data)
+	shape := fmt.Sprintf("[%d rows x %d columns]", numRows, len(df.Columns))
+
+	// Render the table
+	table.Render()
+	return buf.String() + shape + "\n"
 }
