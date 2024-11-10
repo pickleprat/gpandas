@@ -8,7 +8,7 @@ import (
 	"os"
 )
 
-type gpandas struct{}
+type GoPandas struct{}
 
 // FloatColumn represents a slice of float64 values.
 type FloatCol []float64
@@ -64,7 +64,7 @@ func FloatColumn(col []any) ([]float64, error) {
 // Returns:
 //
 //	A pointer to a DataFrame containing the processed data, or an error if validation fails
-func (gpandas) DataFrame(columns []string, data []Column, columns_types map[string]any) (*dataframe.DataFrame, error) {
+func (GoPandas) DataFrame(columns []string, data []Column, columns_types map[string]any) (*dataframe.DataFrame, error) {
 	// Validate inputs
 	if columns_types == nil {
 		return nil, errors.New("columns_types map is required to assert column types")
@@ -163,7 +163,7 @@ func (gpandas) DataFrame(columns []string, data []Column, columns_types map[stri
 // Returns:
 //
 //	A pointer to a DataFrame containing the data from the CSV file, or an error if the operation fails.
-func (gpandas) Read_csv(filepath string) (*dataframe.DataFrame, error) {
+func (GoPandas) Read_csv(filepath string) (*dataframe.DataFrame, error) {
 	// Open the CSV file
 	file, err := os.Open(filepath)
 	if err != nil {
@@ -214,5 +214,5 @@ func (gpandas) Read_csv(filepath string) (*dataframe.DataFrame, error) {
 	}
 
 	// Create DataFrame using existing DataFrame function
-	return gpandas{}.DataFrame(headers, data, columns_types)
+	return GoPandas{}.DataFrame(headers, data, columns_types)
 }
