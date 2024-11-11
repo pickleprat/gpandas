@@ -127,3 +127,191 @@ func (df *DataFrame) String() string {
 	table.Render()
 	return buf.String() + shape + "\n"
 }
+
+// MergeHow represents the type of merge operation
+type MergeHow string
+
+const (
+	LeftMerge  MergeHow = "left"
+	RightMerge MergeHow = "right"
+	InnerMerge MergeHow = "inner"
+	FullMerge  MergeHow = "full"
+)
+
+// Merge combines two DataFrames based on a common column
+func (df *DataFrame) Merge(other *DataFrame, on string, how MergeHow) (*DataFrame, error) {
+	if df == nil || other == nil {
+		return nil, errors.New("both DataFrames must be non-nil")
+	}
+
+	// Validate 'on' column exists in both DataFrames
+	df1ColIdx := -1
+	df2ColIdx := -1
+	for i, col := range df.Columns {
+		if col == on {
+			df1ColIdx = i
+			break
+		}
+	}
+	for i, col := range other.Columns {
+		if col == on {
+			df2ColIdx = i
+			break
+		}
+	}
+	if df1ColIdx == -1 || df2ColIdx == -1 {
+		return nil, fmt.Errorf("column '%s' not found in both DataFrames", on)
+	}
+
+	// Create maps for faster lookups
+	df2Map := make(map[any][]int)
+	for i, row := range other.Data {
+		key := row[df2ColIdx]
+		df2Map[key] = append(df2Map[key], i)
+	}
+
+	// Prepare result columns
+	resultColumns := make([]string, 0)
+	resultColumns = append(resultColumns, df.Columns...)
+	for _, col := range other.Columns {
+		if col != on {
+			resultColumns = append(resultColumns, col)
+		}
+	}
+
+	// Prepare result data based on merge type
+	var resultData [][]any
+	switch how {
+	case InnerMerge:
+		resultData = performInnerMerge(df, other, df1ColIdx, df2ColIdx, df2Map)
+	case LeftMerge:
+		resultData = performLeftMerge(df, other, df1ColIdx, df2ColIdx, df2Map)
+	case RightMerge:
+		resultData = performRightMerge(df, other, df1ColIdx, df2ColIdx, df2Map)
+	case FullMerge:
+		resultData = performFullMerge(df, other, df1ColIdx, df2ColIdx, df2Map)
+	default:
+		return nil, fmt.Errorf("invalid merge type: %s", how)
+	}
+
+	return &DataFrame{
+		Columns: resultColumns,
+		Data:    resultData,
+	}, nil
+}
+
+func performInnerMerge(df1, df2 *DataFrame, df1ColIdx, df2ColIdx int, df2Map map[any][]int) [][]any {
+	var result [][]any
+	for _, row1 := range df1.Data {
+		key := row1[df1ColIdx]
+		if matches, ok := df2Map[key]; ok {
+			for _, matchIdx := range matches {
+				row2 := df2.Data[matchIdx]
+				newRow := make([]any, 0)
+				newRow = append(newRow, row1...)
+				for j, val := range row2 {
+					if j != df2ColIdx {
+						newRow = append(newRow, val)
+					}
+				}
+				result = append(result, newRow)
+			}
+		}
+	}
+	return result
+}
+
+func performLeftMerge(df1, df2 *DataFrame, df1ColIdx, df2ColIdx int, df2Map map[any][]int) [][]any {
+	var result [][]any
+	nullRow := make([]any, len(df2.Columns)-1)
+
+	for _, row1 := range df1.Data {
+		key := row1[df1ColIdx]
+		if matches, ok := df2Map[key]; ok {
+			for _, matchIdx := range matches {
+				row2 := df2.Data[matchIdx]
+				newRow := make([]any, 0)
+				newRow = append(newRow, row1...)
+				for j, val := range row2 {
+					if j != df2ColIdx {
+						newRow = append(newRow, val)
+					}
+				}
+				result = append(result, newRow)
+			}
+		} else {
+			newRow := make([]any, 0)
+			newRow = append(newRow, row1...)
+			newRow = append(newRow, nullRow...)
+			result = append(result, newRow)
+		}
+	}
+	return result
+}
+
+func performRightMerge(df1, df2 *DataFrame, df1ColIdx, df2ColIdx int, df2Map map[any][]int) [][]any {
+	// Create reverse mapping for df1
+	df1Map := make(map[any][]int)
+	for i, row := range df1.Data {
+		key := row[df1ColIdx]
+		df1Map[key] = append(df1Map[key], i)
+	}
+
+	var result [][]any
+	nullRow := make([]any, len(df1.Columns))
+
+	for _, row2 := range df2.Data {
+		key := row2[df2ColIdx]
+		if matches, ok := df1Map[key]; ok {
+			for _, matchIdx := range matches {
+				row1 := df1.Data[matchIdx]
+				newRow := make([]any, 0)
+				newRow = append(newRow, row1...)
+				for j, val := range row2 {
+					if j != df2ColIdx {
+						newRow = append(newRow, val)
+					}
+				}
+				result = append(result, newRow)
+			}
+		} else {
+			newRow := make([]any, 0)
+			newRow = append(newRow, nullRow...)
+			for j, val := range row2 {
+				if j != df2ColIdx {
+					newRow = append(newRow, val)
+				}
+			}
+			result = append(result, newRow)
+		}
+	}
+	return result
+}
+
+func performFullMerge(df1, df2 *DataFrame, df1ColIdx, df2ColIdx int, df2Map map[any][]int) [][]any {
+	// Get all rows from left merge
+	result := performLeftMerge(df1, df2, df1ColIdx, df2ColIdx, df2Map)
+
+	// Create set of keys already processed
+	processedKeys := make(map[any]bool)
+	for _, row := range df1.Data {
+		processedKeys[row[df1ColIdx]] = true
+	}
+
+	// Add remaining rows from right DataFrame
+	nullRow := make([]any, len(df1.Columns))
+	for _, row2 := range df2.Data {
+		key := row2[df2ColIdx]
+		if !processedKeys[key] {
+			newRow := make([]any, 0)
+			newRow = append(newRow, nullRow...)
+			for j, val := range row2 {
+				if j != df2ColIdx {
+					newRow = append(newRow, val)
+				}
+			}
+			result = append(result, newRow)
+		}
+	}
+	return result
+}
