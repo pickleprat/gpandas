@@ -138,7 +138,68 @@ const (
 	FullMerge  MergeHow = "full"
 )
 
-// Merge combines two DataFrames based on a common column
+// Merge combines two DataFrames based on a specified column and merge type.
+//
+// Parameters:
+//
+// other: The DataFrame to merge with the current DataFrame.
+//
+// on: The name of the column to merge on. This column must exist in both DataFrames.
+//
+// how: The type of merge to perform. It can be one of the following:
+//   - LeftMerge: Keep all rows from the left DataFrame and match rows from the right DataFrame.
+//   - RightMerge: Keep all rows from the right DataFrame and match rows from the left DataFrame.
+//   - InnerMerge: Keep only rows that have matching values in both DataFrames.
+//   - FullMerge: Keep all rows from both DataFrames, filling in missing values with nil.
+//
+// Returns:
+//   - A new DataFrame containing the merged data.
+//   - An error if the merge operation fails, such as if the specified column does not exist in one or both DataFrames.
+//
+// Examples:
+//
+//	// Create two sample DataFrames
+//	df1 := &DataFrame{
+//		Columns: []string{"ID", "Name"},
+//		Data: [][]any{
+//			{1, "Alice"},
+//			{2, "Bob"},
+//			{3, "Charlie"},
+//		},
+//	}
+//
+//	df2 := &DataFrame{
+//		Columns: []string{"ID", "Age"},
+//		Data: [][]any{
+//			{1, 25},
+//			{2, 30},
+//			{4, 35},
+//		},
+//	}
+//
+//	// Inner merge example (only matching IDs)
+//	result, err := df1.Merge(df2, "ID", InnerMerge)
+//	// Result:
+//	// ID | Name    | Age
+//	// 1  | Alice   | 25
+//	// 2  | Bob     | 30
+//
+//	// Left merge example (all rows from df1)
+//	result, err := df1.Merge(df2, "ID", LeftMerge)
+//	// Result:
+//	// ID | Name    | Age
+//	// 1  | Alice   | 25
+//	// 2  | Bob     | 30
+//	// 3  | Charlie | nil
+//
+//	// Full merge example (all rows from both)
+//	result, err := df1.Merge(df2, "ID", FullMerge)
+//	// Result:
+//	// ID | Name    | Age
+//	// 1  | Alice   | 25
+//	// 2  | Bob     | 30
+//	// 3  | Charlie | nil
+//	// 4  | nil     | 35
 func (df *DataFrame) Merge(other *DataFrame, on string, how MergeHow) (*DataFrame, error) {
 	if df == nil || other == nil {
 		return nil, errors.New("both DataFrames must be non-nil")
@@ -249,7 +310,7 @@ func performLeftMerge(df1, df2 *DataFrame, df1ColIdx, df2ColIdx int, df2Map map[
 	return result
 }
 
-func performRightMerge(df1, df2 *DataFrame, df1ColIdx, df2ColIdx int, df2Map map[any][]int) [][]any {
+func performRightMerge(df1, df2 *DataFrame, df1ColIdx, df2ColIdx int, _ map[any][]int) [][]any {
 	// Create reverse mapping for df1
 	df1Map := make(map[any][]int)
 	for i, row := range df1.Data {
