@@ -10,6 +10,26 @@ import (
 	"github.com/olekukonko/tablewriter"
 )
 
+type GoPandas struct{}
+
+// FloatColumn represents a slice of float64 values.
+type FloatCol []float64
+
+// StringColumn represents a slice of string values.
+type StringCol []string
+
+// IntColumn represents a slice of int64 values.
+type IntCol []int64
+
+// BoolColumn represents a slice of bool values.
+type BoolCol []bool
+
+// Column represents a slice of any type.
+type Column []any
+
+// TypeColumn represents a slice of a comparable type T.
+type TypeColumn[T comparable] []T
+
 func GetMapKeys[K comparable, V any](input_map map[K]V) (collection.Set[K], error) {
 	keys, err := collection.NewSet[K]()
 	if err != nil {
@@ -77,12 +97,11 @@ func (df *DataFrame) String() string {
 	table := tablewriter.NewWriter(&buf)
 
 	// Set table properties
-	// TODO: Instantiate this in package level
 	table.SetAutoWrapText(false)
-	table.SetAutoFormatHeaders(true)
+	table.SetAutoFormatHeaders(false)
 	table.SetHeaderAlignment(tablewriter.ALIGN_LEFT)
 	table.SetAlignment(tablewriter.ALIGN_LEFT)
-	table.SetCenterSeparator("|")
+	table.SetCenterSeparator("+")
 	table.SetColumnSeparator("|")
 	table.SetRowSeparator("-")
 	table.SetHeaderLine(true)
