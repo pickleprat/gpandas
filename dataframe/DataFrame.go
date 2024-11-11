@@ -261,6 +261,26 @@ func (df *DataFrame) Merge(other *DataFrame, on string, how MergeHow) (*DataFram
 	}, nil
 }
 
+// performInnerMerge combines two DataFrames based on a specified column index,
+// returning only the rows that have matching values in both DataFrames.
+//
+// Parameters:
+//   - df1: The first DataFrame to merge.
+//   - df2: The second DataFrame to merge.
+//   - df1ColIdx: The index of the column in the first DataFrame to merge on.
+//   - df2ColIdx: The index of the column in the second DataFrame to merge on.
+//   - df2Map: A map created from the second DataFrame for faster lookups, where the key is the value
+//     in the merge column and the value is a slice of indices of rows in the second DataFrame that
+//     have that key.
+//
+// Returns: A slice of slices containing the merged data, where each inner slice represents a row.
+// The resulting rows will include all columns from the first DataFrame and the columns from the second DataFrame, excluding the merge column from the second DataFrame.
+//
+// Example:
+//
+//	result := performInnerMerge(df1, df2, 0, 0, df2Map)
+//	// This will merge df1 and df2 on the first column of each DataFrame,
+//	// returning only the rows with matching values in that column.
 func performInnerMerge(df1, df2 *DataFrame, df1ColIdx, df2ColIdx int, df2Map map[any][]int) [][]any {
 	var result [][]any
 	for _, row1 := range df1.Data {
@@ -282,6 +302,26 @@ func performInnerMerge(df1, df2 *DataFrame, df1ColIdx, df2ColIdx int, df2Map map
 	return result
 }
 
+// performLeftMerge combines two DataFrames based on a specified column index,
+// keeping all rows from the first DataFrame and matching rows from the second DataFrame.
+//
+// Parameters:
+//   - df1: The first DataFrame to merge.
+//   - df2: The second DataFrame to merge.
+//   - df1ColIdx: The index of the column in the first DataFrame to merge on.
+//   - df2ColIdx: The index of the column in the second DataFrame to merge on.
+//   - df2Map: A map created from the second DataFrame for faster lookups, where the key is the value
+//     in the merge column and the value is a slice of indices of rows in the second DataFrame that
+//     have that key.
+//
+// Returns: A slice of slices containing the merged data, where each inner slice represents a row.
+// The resulting rows will include all rows from the first DataFrame, with matching data from the second DataFrame where available, and nil values where no match exists.
+//
+// Example:
+//
+//	result := performLeftMerge(df1, df2, 0, 0, df2Map)
+//	// This will keep all rows from df1 and add matching columns from df2,
+//	// filling with nil values when there's no match in df2.
 func performLeftMerge(df1, df2 *DataFrame, df1ColIdx, df2ColIdx int, df2Map map[any][]int) [][]any {
 	var result [][]any
 	nullRow := make([]any, len(df2.Columns)-1)
@@ -310,6 +350,24 @@ func performLeftMerge(df1, df2 *DataFrame, df1ColIdx, df2ColIdx int, df2Map map[
 	return result
 }
 
+// performRightMerge combines two DataFrames based on a specified column index,
+// keeping all rows from the second DataFrame and matching rows from the first DataFrame.
+//
+// Parameters:
+//   - df1: The first DataFrame to merge.
+//   - df2: The second DataFrame to merge.
+//   - df1ColIdx: The index of the column in the first DataFrame to merge on.
+//   - df2ColIdx: The index of the column in the second DataFrame to merge on.
+//   - df2Map: A map created from the second DataFrame for faster lookups (unused in right merge).
+//
+// Returns: A slice of slices containing the merged data, where each inner slice represents a row.
+// The resulting rows will include all rows from the second DataFrame, with matching data from the first DataFrame where available, and nil values where no match exists.
+//
+// Example:
+//
+//	result := performRightMerge(df1, df2, 0, 0, df2Map)
+//	// This will keep all rows from df2 and add matching columns from df1,
+//	// filling with nil values when there's no match in df1.
 func performRightMerge(df1, df2 *DataFrame, df1ColIdx, df2ColIdx int, _ map[any][]int) [][]any {
 	// Create reverse mapping for df1
 	df1Map := make(map[any][]int)
@@ -349,6 +407,26 @@ func performRightMerge(df1, df2 *DataFrame, df1ColIdx, df2ColIdx int, _ map[any]
 	return result
 }
 
+// performFullMerge combines two DataFrames based on a specified column index,
+// keeping all rows from both DataFrames and matching where possible.
+//
+// Parameters:
+//   - df1: The first DataFrame to merge.
+//   - df2: The second DataFrame to merge.
+//   - df1ColIdx: The index of the column in the first DataFrame to merge on.
+//   - df2ColIdx: The index of the column in the second DataFrame to merge on.
+//   - df2Map: A map created from the second DataFrame for faster lookups, where the key is the value
+//     in the merge column and the value is a slice of indices of rows in the second DataFrame that
+//     have that key.
+//
+// Returns: A slice of slices containing the merged data, where each inner slice represents a row.
+// The resulting rows will include all rows from both DataFrames, with matching data where available and nil values where no match exists.
+//
+// Example:
+//
+//	result := performFullMerge(df1, df2, 0, 0, df2Map)
+//	// This will keep all rows from both df1 and df2, matching where possible,
+//	// filling with nil values when there's no match in either DataFrame.
 func performFullMerge(df1, df2 *DataFrame, df1ColIdx, df2ColIdx int, df2Map map[any][]int) [][]any {
 	// Get all rows from left merge
 	result := performLeftMerge(df1, df2, df1ColIdx, df2ColIdx, df2Map)
