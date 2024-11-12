@@ -117,3 +117,185 @@ func TestDataFrameString(t *testing.T) {
 		})
 	}
 }
+
+func TestDataFrameMerge(t *testing.T) {
+	tests := []struct {
+		name        string
+		df1         *dataframe.DataFrame
+		df2         *dataframe.DataFrame
+		on          string
+		how         dataframe.MergeHow
+		expected    *dataframe.DataFrame
+		expectError bool
+	}{
+		{
+			name: "inner merge - basic case",
+			df1: &dataframe.DataFrame{
+				Columns: []string{"ID", "Name"},
+				Data:    [][]any{{1, "Alice"}, {2, "Bob"}, {3, "Charlie"}},
+			},
+			df2: &dataframe.DataFrame{
+				Columns: []string{"ID", "Age"},
+				Data:    [][]any{{1, 25}, {2, 30}, {4, 35}},
+			},
+			on:  "ID",
+			how: dataframe.InnerMerge,
+			expected: &dataframe.DataFrame{
+				Columns: []string{"ID", "Name", "Age"},
+				Data:    [][]any{{1, "Alice", 25}, {2, "Bob", 30}},
+			},
+			expectError: false,
+		},
+		{
+			name: "left merge - keep all left rows",
+			df1: &dataframe.DataFrame{
+				Columns: []string{"ID", "Name"},
+				Data:    [][]any{{1, "Alice"}, {2, "Bob"}, {3, "Charlie"}},
+			},
+			df2: &dataframe.DataFrame{
+				Columns: []string{"ID", "Age"},
+				Data:    [][]any{{1, 25}, {2, 30}},
+			},
+			on:  "ID",
+			how: dataframe.LeftMerge,
+			expected: &dataframe.DataFrame{
+				Columns: []string{"ID", "Name", "Age"},
+				Data:    [][]any{{1, "Alice", 25}, {2, "Bob", 30}, {3, "Charlie", nil}},
+			},
+			expectError: false,
+		},
+		{
+			name: "right merge - keep all right rows",
+			df1: &dataframe.DataFrame{
+				Columns: []string{"ID", "Name"},
+				Data:    [][]any{{1, "Alice"}, {2, "Bob"}},
+			},
+			df2: &dataframe.DataFrame{
+				Columns: []string{"ID", "Age"},
+				Data:    [][]any{{1, 25}, {2, 30}, {3, 35}},
+			},
+			on:  "ID",
+			how: dataframe.RightMerge,
+			expected: &dataframe.DataFrame{
+				Columns: []string{"ID", "Name", "Age"},
+				Data:    [][]any{{1, "Alice", 25}, {2, "Bob", 30}, {3, nil, 35}},
+			},
+			expectError: false,
+		},
+		{
+			name: "full merge - keep all rows",
+			df1: &dataframe.DataFrame{
+				Columns: []string{"ID", "Name"},
+				Data:    [][]any{{1, "Alice"}, {2, "Bob"}, {3, "Charlie"}},
+			},
+			df2: &dataframe.DataFrame{
+				Columns: []string{"ID", "Age"},
+				Data:    [][]any{{1, 25}, {2, 30}, {4, 35}},
+			},
+			on:  "ID",
+			how: dataframe.FullMerge,
+			expected: &dataframe.DataFrame{
+				Columns: []string{"ID", "Name", "Age"},
+				Data:    [][]any{{1, "Alice", 25}, {2, "Bob", 30}, {3, "Charlie", nil}, {4, nil, 35}},
+			},
+			expectError: false,
+		},
+		{
+			name:        "nil dataframe error",
+			df1:         nil,
+			df2:         &dataframe.DataFrame{},
+			on:          "ID",
+			how:         dataframe.InnerMerge,
+			expectError: true,
+		},
+		{
+			name: "column not found error",
+			df1: &dataframe.DataFrame{
+				Columns: []string{"ID", "Name"},
+				Data:    [][]any{{1, "Alice"}},
+			},
+			df2: &dataframe.DataFrame{
+				Columns: []string{"UserID", "Age"},
+				Data:    [][]any{{1, 25}},
+			},
+			on:          "ID",
+			how:         dataframe.InnerMerge,
+			expectError: true,
+		},
+		{
+			name: "invalid merge type error",
+			df1: &dataframe.DataFrame{
+				Columns: []string{"ID", "Name"},
+				Data:    [][]any{{1, "Alice"}},
+			},
+			df2: &dataframe.DataFrame{
+				Columns: []string{"ID", "Age"},
+				Data:    [][]any{{1, 25}},
+			},
+			on:          "ID",
+			how:         "invalid",
+			expectError: true,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			result, err := test.df1.Merge(test.df2, test.on, test.how)
+
+			// Check error cases
+			if test.expectError {
+				if err == nil {
+					t.Errorf("expected error but got none")
+				}
+				return
+			}
+			if err != nil {
+				t.Errorf("unexpected error: %v", err)
+				return
+			}
+
+			// Check columns match
+			if !strSliceEqual(result.Columns, test.expected.Columns) {
+				t.Errorf("columns mismatch\nexpected: %v\ngot: %v", test.expected.Columns, result.Columns)
+			}
+
+			// Check data matches
+			if len(result.Data) != len(test.expected.Data) {
+				t.Errorf("data length mismatch\nexpected: %d\ngot: %d", len(test.expected.Data), len(result.Data))
+				return
+			}
+
+			for i, row := range result.Data {
+				if !sliceEqual(row, test.expected.Data[i]) {
+					t.Errorf("row %d mismatch\nexpected: %v\ngot: %v", i, test.expected.Data[i], row)
+				}
+			}
+		})
+	}
+}
+
+// Helper function to compare slices
+func sliceEqual(a, b []any) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
+}
+
+// Helper function to compare string slices
+func strSliceEqual(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
+}

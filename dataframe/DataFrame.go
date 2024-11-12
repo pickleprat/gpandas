@@ -395,6 +395,8 @@ func performRightMerge(df1, df2 *DataFrame, df1ColIdx, df2ColIdx int, _ map[any]
 			}
 		} else {
 			newRow := make([]any, 0)
+			// Set the key column value instead of using null
+			nullRow[df1ColIdx] = key
 			newRow = append(newRow, nullRow...)
 			for j, val := range row2 {
 				if j != df2ColIdx {
@@ -402,6 +404,8 @@ func performRightMerge(df1, df2 *DataFrame, df1ColIdx, df2ColIdx int, _ map[any]
 				}
 			}
 			result = append(result, newRow)
+			// Reset the key column back to nil for next iteration
+			nullRow[df1ColIdx] = nil
 		}
 	}
 	return result
@@ -443,6 +447,8 @@ func performFullMerge(df1, df2 *DataFrame, df1ColIdx, df2ColIdx int, df2Map map[
 		key := row2[df2ColIdx]
 		if !processedKeys[key] {
 			newRow := make([]any, 0)
+			// Set the key column value instead of using null
+			nullRow[df1ColIdx] = key
 			newRow = append(newRow, nullRow...)
 			for j, val := range row2 {
 				if j != df2ColIdx {
@@ -450,6 +456,8 @@ func performFullMerge(df1, df2 *DataFrame, df1ColIdx, df2ColIdx int, df2Map map[
 				}
 			}
 			result = append(result, newRow)
+			// Reset the key column back to nil for next iteration
+			nullRow[df1ColIdx] = nil
 		}
 	}
 	return result
