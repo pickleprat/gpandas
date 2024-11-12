@@ -47,6 +47,14 @@ type DataFrame struct {
 	Data    [][]any
 }
 
+// Rename updates the column names of the DataFrame based on the provided mapping.
+//
+// Parameters:
+//   - columns: A map where the keys are the original column names and the values are the new column names.
+//
+// Returns:
+//   - An error if the provided columns map is empty, if the DataFrame is nil, or if any of the original column names
+//     do not exist in the DataFrame. Returns nil if the renaming is successful.
 func (df *DataFrame) Rename(columns map[string]string) error {
 	if len(columns) == 0 {
 		return errors.New("'columns' slice is empty. Slice of Maps to declare columns to rename is required")
@@ -92,6 +100,14 @@ func (df *DataFrame) Rename(columns map[string]string) error {
 	return nil
 }
 
+// String returns a string representation of the DataFrame in a tabular format.
+// It uses the tablewriter package to format the DataFrame's columns and rows
+// into a visually appealing table. The output includes the column headers,
+// the data rows, and a summary of the number of rows and columns in the DataFrame.
+//
+// Returns:
+//   - A string that represents the DataFrame in a table format, including
+//     the number of rows and columns.
 func (df *DataFrame) String() string {
 	var buf bytes.Buffer
 	table := tablewriter.NewWriter(&buf)
