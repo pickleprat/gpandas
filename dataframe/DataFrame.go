@@ -47,14 +47,51 @@ type DataFrame struct {
 	Data    [][]any
 }
 
-// Rename updates the column names of the DataFrame based on the provided mapping.
+// Rename changes the names of specified columns in the DataFrame.
+//
+// The method allows renaming multiple columns at once by providing a map where:
+//   - Keys are the current/original column names
+//   - Values are the new column names to replace them with
+//
+// The operation is thread-safe as it uses mutex locking to prevent concurrent modifications.
 //
 // Parameters:
-//   - columns: A map where the keys are the original column names and the values are the new column names.
+//   - columns: map[string]string where keys are original column names and values are new names
 //
 // Returns:
-//   - An error if the provided columns map is empty, if the DataFrame is nil, or if any of the original column names
-//     do not exist in the DataFrame. Returns nil if the renaming is successful.
+//   - error: nil if successful, otherwise an error describing what went wrong
+//
+// Possible errors:
+//   - If the columns map is empty
+//   - If the DataFrame is nil
+//   - If any specified original column name doesn't exist in the DataFrame
+//   - If there are any issues with internal set operations
+//
+// Example:
+//
+//	df := &DataFrame{
+//	    Columns: []string{"A", "B", "C"},
+//	    Data:    [][]any{{1, 2, 3}, {4, 5, 6}},
+//	}
+//
+//	// Rename columns "A" to "X" and "B" to "Y"
+//	err := df.Rename(map[string]string{
+//	    "A": "X",
+//	    "B": "Y",
+//	})
+//
+//	// Result:
+//	// Columns will be ["X", "Y", "C"]
+//
+// Thread Safety:
+//
+// The method uses sync.Mutex to ensure thread-safe operation when modifying column names.
+// The lock is automatically released using defer when the function returns.
+//
+// Note:
+//   - All specified original column names must exist in the DataFrame
+//   - The operation modifies the DataFrame in place
+//   - Column order remains unchanged
 func (df *DataFrame) Rename(columns map[string]string) error {
 	if len(columns) == 0 {
 		return errors.New("'columns' slice is empty. Slice of Maps to declare columns to rename is required")
@@ -100,14 +137,43 @@ func (df *DataFrame) Rename(columns map[string]string) error {
 	return nil
 }
 
-// String returns a string representation of the DataFrame in a tabular format.
-// It uses the tablewriter package to format the DataFrame's columns and rows
-// into a visually appealing table. The output includes the column headers,
-// the data rows, and a summary of the number of rows and columns in the DataFrame.
+// String returns a string representation of the DataFrame in a formatted table.
+//
+// The method creates a visually appealing ASCII table representation of the DataFrame
+// with the following features:
+//   - Column headers are displayed in the first row
+//   - Data is aligned to the left within columns
+//   - Table borders and separators use ASCII characters
+//   - Each cell's content is automatically converted to string representation
+//   - A summary line showing dimensions ([rows x columns]) is appended
+//
+// The table format follows this pattern:
+//
+//	+-----+-----+-----+
+//	| Col1| Col2| Col3|
+//	+-----+-----+-----+
+//	| val1| val2| val3|
+//	| val4| val5| val6|
+//	+-----+-----+-----+
+//	[2 rows x 3 columns]
+//
+// Parameters:
+//   - None (receiver method on DataFrame)
 //
 // Returns:
-//   - A string that represents the DataFrame in a table format, including
-//     the number of rows and columns.
+//   - string: The formatted table representation of the DataFrame
+//
+// Example:
+//
+//	df := &DataFrame{
+//	    Columns: []string{"A", "B"},
+//	    Data:    [][]any{{1, 2}, {3, 4}},
+//	}
+//	fmt.Println(df.String())
+//
+// Note:
+//   - All values are converted to strings using fmt.Sprintf("%v", val)
+//   - The table is rendered using the github.com/olekukonko/tablewriter package
 func (df *DataFrame) String() string {
 	var buf bytes.Buffer
 	table := tablewriter.NewWriter(&buf)
