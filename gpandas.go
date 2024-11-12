@@ -216,3 +216,5 @@ func (GoPandas) Read_csv(filepath string) (*dataframe.DataFrame, error) {
 	// Create DataFrame using existing DataFrame function
 	return GoPandas{}.DataFrame(headers, data, columns_types)
 }
+
+func (GoPandas) To_csv()
