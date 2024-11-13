@@ -2,6 +2,7 @@ package dataframe_test
 
 import (
 	"gpandas/dataframe"
+	"os"
 	"testing"
 )
 
@@ -483,4 +484,160 @@ func TestDataFrameMerge(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestDataFrameToCSV tests the DataFrame.ToCSV method which converts a DataFrame to CSV format
+// or writes it to a file.
+//
+// The test suite covers the following scenarios:
+//
+// 1. Basic CSV String Output:
+//   - Tests conversion of simple DataFrame to CSV string
+//   - Verifies correct comma separation and line endings
+//
+// 2. Custom Separator:
+//   - Tests CSV generation with custom separator (semicolon)
+//   - Verifies correct formatting with non-default separator
+//
+// 3. File Output:
+//   - Tests writing CSV to a temporary file
+//   - Verifies file contents match expected CSV format
+//
+// 4. Mixed Data Types:
+//   - Tests CSV conversion with various data types (string, int, bool)
+//   - Verifies correct string representation of different types
+//
+// 5. Error Cases:
+//   - Tests nil DataFrame handling
+//   - Tests invalid file path handling
+func TestDataFrameToCSV(t *testing.T) {
+	tests := []struct {
+		name        string
+		df          *dataframe.DataFrame
+		filepath    string
+		separator   string
+		expected    string
+		expectError bool
+	}{
+		{
+			name: "basic csv string output",
+			df: &dataframe.DataFrame{
+				Columns: []string{"A", "B", "C"},
+				Data:    [][]any{{1, 2, 3}, {4, 5, 6}},
+			},
+			filepath:    "",
+			expected:    "A,B,C\n1,2,3\n4,5,6\n",
+			expectError: false,
+		},
+		{
+			name: "custom separator",
+			df: &dataframe.DataFrame{
+				Columns: []string{"A", "B", "C"},
+				Data:    [][]any{{1, 2, 3}, {4, 5, 6}},
+			},
+			filepath:    "",
+			separator:   ";",
+			expected:    "A;B;C\n1;2;3\n4;5;6\n",
+			expectError: false,
+		},
+		{
+			name: "mixed data types",
+			df: &dataframe.DataFrame{
+				Columns: []string{"Name", "Age", "Active"},
+				Data:    [][]any{{"John", 30, true}, {"Jane", 25, false}},
+			},
+			filepath:    "",
+			expected:    "Name,Age,Active\nJohn,30,true\nJane,25,false\n",
+			expectError: false,
+		},
+		{
+			name:        "nil dataframe",
+			df:          nil,
+			filepath:    "",
+			expectError: true,
+		},
+		{
+			name: "invalid file path",
+			df: &dataframe.DataFrame{
+				Columns: []string{"A", "B"},
+				Data:    [][]any{{1, 2}},
+			},
+			filepath:    "/nonexistent/directory/file.csv",
+			expectError: true,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			var result string
+			var err error
+
+			if test.separator != "" {
+				result, err = test.df.ToCSV(test.filepath, test.separator)
+			} else {
+				result, err = test.df.ToCSV(test.filepath)
+			}
+
+			// Check error cases
+			if test.expectError {
+				if err == nil {
+					t.Errorf("expected error but got none")
+				}
+				return
+			}
+			if err != nil {
+				t.Errorf("unexpected error: %v", err)
+				return
+			}
+
+			// For file output tests, read the file and compare contents
+			if test.filepath != "" {
+				content, err := os.ReadFile(test.filepath)
+				if err != nil {
+					t.Errorf("failed to read output file: %v", err)
+					return
+				}
+				result = string(content)
+				// Clean up the test file
+				os.Remove(test.filepath)
+			}
+
+			// Compare results
+			if result != test.expected {
+				t.Errorf("CSV output mismatch\nexpected:\n%s\ngot:\n%s", test.expected, result)
+			}
+		})
+	}
+
+	// Test successful file writing with temporary file
+	t.Run("successful file writing", func(t *testing.T) {
+		df := &dataframe.DataFrame{
+			Columns: []string{"A", "B"},
+			Data:    [][]any{{1, 2}, {3, 4}},
+		}
+		tempFile := t.TempDir() + "/test.csv"
+		expected := "A,B\n1,2\n3,4\n"
+
+		result, err := df.ToCSV(tempFile)
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+			return
+		}
+
+		// Result should be empty string when writing to file
+		if result != "" {
+			t.Errorf("expected empty string result when writing to file, got: %s", result)
+		}
+
+		// Read the file and verify contents
+		content, err := os.ReadFile(tempFile)
+		if err != nil {
+			t.Errorf("failed to read output file: %v", err)
+			return
+		}
+
+		if string(content) != expected {
+			t.Errorf("file content mismatch\nexpected:\n%s\ngot:\n%s", expected, string(content))
+		}
+	})
 }

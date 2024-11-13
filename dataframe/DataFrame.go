@@ -214,8 +214,8 @@ func (df *DataFrame) String() string {
 // ToCSV converts the DataFrame to a CSV string representation or writes it to a file.
 //
 // Parameters:
-//   - sep: string representing the separator character (defaults to comma if empty)
-//   - filepath: optional file path to write the CSV to
+//   - filepath: file path to write the CSV to (empty string to return as string)
+//   - separator: optional separator for the CSV (defaults to comma)
 //
 // Returns:
 //   - string: CSV representation of the DataFrame if filepath is empty
@@ -225,22 +225,26 @@ func (df *DataFrame) String() string {
 //
 // Example:
 //
-//	// Get CSV as string with comma separator
-//	csv, err := df.ToCSV(",", "")
+//	// Get CSV as string with default comma separator
+//	csv, err := df.ToCSV("")
 //
-//	// Write to file with semicolon separator
-//	_, err := df.ToCSV(";", "path/to/output.csv")
+//	// Get CSV as string with custom separator
+//	csv, err := df.ToCSV("", ";")
 //
 //	// Write to file with default comma separator
-//	_, err := df.ToCSV("", "path/to/output.csv")
-func (df *DataFrame) ToCSV(sep string, filepath string) (string, error) {
+//	_, err := df.ToCSV("path/to/output.csv")
+//
+//	// Write to file with custom separator
+//	_, err := df.ToCSV("path/to/output.csv", ";")
+func (df *DataFrame) ToCSV(filepath string, separator ...string) (string, error) {
 	if df == nil {
 		return "", errors.New("DataFrame is nil")
 	}
 
-	// Use comma as default separator if none provided
-	if sep == "" {
-		sep = ","
+	// Default separator is comma
+	sep := ","
+	if len(separator) > 0 {
+		sep = separator[0]
 	}
 
 	var buf bytes.Buffer
