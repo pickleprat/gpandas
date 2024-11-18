@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"gpandas/dataframe"
 	"os"
+	"runtime"
+	"sync"
 )
 
 type GoPandas struct{}
@@ -194,21 +196,40 @@ func (GoPandas) Read_csv(filepath string) (*dataframe.DataFrame, error) {
 	columnCount := len(headers)
 	data := make([]Column, columnCount)
 	for i := range data {
-		data[i] = make(Column, len(records))
+		data[i] = make(Column, len(records)) // Preallocate memory for each column
 	}
 
-	// Populate data columns
-	for i, row := range records {
-		if len(row) != columnCount {
-			return nil, fmt.Errorf("inconsistent column count in row %d", i+1)
-		}
-		for j, val := range row {
-			data[j][i] = val
-		}
+	// Use a WaitGroup to synchronize goroutines
+	var wg sync.WaitGroup
+	chunkSize := len(records) / runtime.NumCPU() // Determine chunk size based on available CPUs
+
+	// Populate data columns in parallel
+	for i := 0; i < len(records); i += chunkSize {
+		wg.Add(1)
+		go func(start int) {
+			defer wg.Done()
+			end := start + chunkSize
+			if end > len(records) {
+				end = len(records)
+			}
+			for j := start; j < end; j++ {
+				row := records[j]
+				if len(row) != columnCount {
+					// Handle inconsistent column count
+					return
+				}
+				for k, val := range row {
+					data[k][j] = val // Direct assignment
+				}
+			}
+		}(i)
 	}
+
+	// Wait for all goroutines to finish
+	wg.Wait()
 
 	// Create columns_types map (default to string type)
-	columns_types := make(map[string]any)
+	columns_types := make(map[string]any, columnCount) // Preallocate map size
 	for _, header := range headers {
 		columns_types[header] = StringCol{}
 	}
@@ -216,5 +237,3 @@ func (GoPandas) Read_csv(filepath string) (*dataframe.DataFrame, error) {
 	// Create DataFrame using existing DataFrame function
 	return GoPandas{}.DataFrame(headers, data, columns_types)
 }
-
-func (GoPandas) To_csv()
