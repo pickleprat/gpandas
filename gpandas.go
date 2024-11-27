@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"gpandas/dataframe"
+	"io"
 	"os"
 	"runtime"
 	"sync"
@@ -166,14 +167,12 @@ func (GoPandas) DataFrame(columns []string, data []Column, columns_types map[str
 //
 //	A pointer to a DataFrame containing the data from the CSV file, or an error if the operation fails.
 func (GoPandas) Read_csv(filepath string) (*dataframe.DataFrame, error) {
-	// Open the CSV file
 	file, err := os.Open(filepath)
 	if err != nil {
 		return nil, fmt.Errorf("error opening file: %w", err)
 	}
 	defer file.Close()
 
-	// Create CSV reader
 	reader := csv.NewReader(file)
 
 	// Read header
@@ -182,58 +181,90 @@ func (GoPandas) Read_csv(filepath string) (*dataframe.DataFrame, error) {
 		return nil, fmt.Errorf("error reading headers: %w", err)
 	}
 
-	// Read all records
-	records, err := reader.ReadAll()
-	if err != nil {
-		return nil, fmt.Errorf("error reading records: %w", err)
-	}
-
-	if len(records) == 0 {
-		return nil, errors.New("CSV file is empty")
-	}
-
-	// Initialize data columns
 	columnCount := len(headers)
-	data := make([]Column, columnCount)
-	for i := range data {
-		data[i] = make(Column, len(records)) // Preallocate memory for each column
+	if columnCount == 0 {
+		return nil, errors.New("no headers found in CSV")
 	}
 
-	// Use a WaitGroup to synchronize goroutines
+	// Use a worker pool for dynamic workload distribution
+	type RowData struct {
+		Index int
+		Row   []string
+	}
+	rowChan := make(chan RowData, 100)                 // Buffered channel to hold rows
+	resultChan := make(chan [][]any, runtime.NumCPU()) // Channel to hold columnar data
 	var wg sync.WaitGroup
-	chunkSize := len(records) / runtime.NumCPU() // Determine chunk size based on available CPUs
 
-	// Populate data columns in parallel
-	for i := 0; i < len(records); i += chunkSize {
+	// Start workers for processing rows
+	for i := 0; i < runtime.NumCPU(); i++ {
 		wg.Add(1)
-		go func(start int) {
+		go func() {
 			defer wg.Done()
-			end := start + chunkSize
-			if end > len(records) {
-				end = len(records)
+
+			// Local column buffers
+			localData := make([][]any, columnCount)
+			for i := range localData {
+				localData[i] = make([]any, 0, 100) // Preallocate some space
 			}
-			for j := start; j < end; j++ {
-				row := records[j]
-				if len(row) != columnCount {
-					// Handle inconsistent column count
-					return
+
+			for row := range rowChan {
+				if len(row.Row) != columnCount {
+					// Handle inconsistent row lengths
+					continue
 				}
-				for k, val := range row {
-					data[k][j] = val // Direct assignment
+				for j, val := range row.Row {
+					localData[j] = append(localData[j], val)
 				}
 			}
-		}(i)
+			resultChan <- localData
+		}()
 	}
 
-	// Wait for all goroutines to finish
-	wg.Wait()
+	// Feed rows to workers
+	go func() {
+		index := 0
+		for {
+			record, err := reader.Read()
+			if err == io.EOF {
+				break
+			}
+			if err != nil {
+				close(rowChan)
+				return
+			}
+			rowChan <- RowData{Index: index, Row: record}
+			index++
+		}
+		close(rowChan)
+	}()
 
-	// Create columns_types map (default to string type)
-	columns_types := make(map[string]any, columnCount) // Preallocate map size
+	// Wait for workers to finish
+	go func() {
+		wg.Wait()
+		close(resultChan)
+	}()
+
+	// Combine results into columnar format
+	combinedData := make([][]any, columnCount)
+	for i := range combinedData {
+		combinedData[i] = make([]any, 0)
+	}
+
+	for localData := range resultChan {
+		for i := range localData {
+			combinedData[i] = append(combinedData[i], localData[i]...)
+		}
+	}
+
+	// Infer column types (default to string for now)
+	columnTypes := make(map[string]any, columnCount)
 	for _, header := range headers {
-		columns_types[header] = StringCol{}
+		columnTypes[header] = StringCol{} // Placeholder for type inference
 	}
 
-	// Create DataFrame using existing DataFrame function
-	return GoPandas{}.DataFrame(headers, data, columns_types)
+	// Construct DataFrame
+	return &dataframe.DataFrame{
+		Columns: headers,
+		Data:    combinedData,
+	}, nil
 }
