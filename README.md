@@ -54,9 +54,6 @@ go get github.com/apoplexi24/gpandas
 ### DataFrame
 The primary data structure for handling 2-dimensional data with labeled axes.
 
-### Series
-1-dimensional labeled array that can hold data of any type.
-
 ### Set
 Generic implementation of set operations supporting any comparable type.
 
