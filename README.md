@@ -8,14 +8,34 @@ GPandas is a data manipulation and analysis library written in Go. It provides h
 
 ## Features
 
-* Zero-copy data operations where possible
-* High-performance data structures
-* Generic type support
-* Concurrent operations
-* CSV/JSON import/export
-* Data filtering and transformation
-* Set operations
+### Core DataFrame Operations
+* Column renaming with `Rename()`
+* Data merging with `Merge()` supporting:
+  - Inner joins
+  - Left joins 
+  - Right joins
+  - Full outer joins
+* CSV import/export with:
+  - Concurrent CSV reading for high performance
+  - Custom separators
+  - File or string output options
+* Pretty printing with `String()` for formatted table output
+
+### Data Types
+* Strong type support for common data types:
+  - FloatCol (float64)
+  - StringCol (string) 
+  - IntCol (int64)
+  - BoolCol (bool)
+* Generic TypeColumn for custom comparable types
 * Type-safe operations
+
+### Performance Features
+* Concurrent CSV reading with worker pools
+* Zero-copy operations where possible
+* Mutex-based thread safety
+* Efficient memory management
+* Buffered channels for data processing
 
 ## Getting Started
 
