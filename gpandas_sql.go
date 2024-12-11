@@ -1,16 +1,19 @@
 package gpandas
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"gpandas/dataframe"
+
+	"cloud.google.com/go/bigquery"
+	"google.golang.org/api/iterator"
 
 	_ "github.com/denisenkom/go-mssqldb" // SQL Server driver
 )
 
 type DbConfig struct {
 	database_server string
-	driver          string
 	server          string
 	port            string
 	database        string
@@ -85,12 +88,60 @@ func (GoPandas) Read_sql(query string, db_config DbConfig) (*dataframe.DataFrame
 		}
 	}
 
-	// Check for errors from iterating over rows
 	if err := results.Err(); err != nil {
 		return nil, fmt.Errorf("error iterating over rows: %w", err)
 	}
 
-	// Create and return DataFrame
+	return &dataframe.DataFrame{
+		Columns: columns,
+		Data:    data,
+	}, nil
+}
+
+// QueryBigQuery executes a query on BigQuery and returns the result
+func (GoPandas) QueryBigQuery(query string, projectID string) (*dataframe.DataFrame, error) {
+	ctx := context.Background()
+
+	client, err := bigquery.NewClient(ctx, projectID)
+	if err != nil {
+		return nil, fmt.Errorf("bigquery.NewClient: %v", err)
+	}
+	defer client.Close()
+
+	q := client.Query(query)
+	it, err := q.Read(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("query.Read: %v", err)
+	}
+
+	// Get column names
+	schema := it.Schema
+	columns := make([]string, len(schema))
+	for i, field := range schema {
+		columns[i] = field.Name
+	}
+
+	var data [][]any
+
+	for {
+		var row map[string]bigquery.Value
+		err := it.Next(&row)
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			return nil, fmt.Errorf("iterator.Next: %v", err)
+		}
+
+		// Convert bigquery.Value to interface{}
+		interfaceRow := make([]any, len(columns))
+		for i, col := range columns {
+			interfaceRow[i] = row[col]
+		}
+
+		data = append(data, interfaceRow)
+	}
+
 	return &dataframe.DataFrame{
 		Columns: columns,
 		Data:    data,
