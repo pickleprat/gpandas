@@ -12,6 +12,9 @@ import (
 	_ "github.com/denisenkom/go-mssqldb" // SQL Server driver
 )
 
+// struct to store db config.
+//
+// NOTE: Prefer using env vars instead of hardcoding values
 type DbConfig struct {
 	database_server string
 	server          string
@@ -43,6 +46,49 @@ func connect_to_db(db_config *DbConfig) (*sql.DB, error) {
 	return DB, err
 }
 
+// Read_sql executes a SQL query against a database and returns the results as a DataFrame.
+//
+// Parameters:
+//
+//	query: The SQL query string to execute.
+//	db_config: A DbConfig struct containing database connection parameters:
+//	  - database_server: Type of database ("sqlserver" or other)
+//	  - server: Database server hostname or IP
+//	  - port: Database server port
+//	  - database: Database name
+//	  - username: Database user
+//	  - password: Database password
+//
+// Returns:
+//   - A pointer to a DataFrame containing the query results.
+//   - An error if the database connection, query execution, or data processing fails.
+//
+// The DataFrame's structure will match the query results:
+//   - Columns will be named according to the SELECT statement
+//   - Data types will be preserved from the database types
+//
+// Examples:
+//
+//	gp := gpandas.GoPandas{}
+//	config := DbConfig{
+//	    database_server: "sqlserver",
+//	    server: "localhost",
+//	    port: "1433",
+//	    database: "mydb",
+//	    username: "user",
+//	    password: "pass",
+//	}
+//	query := `SELECT employee_id, name, department
+//	          FROM employees
+//	          WHERE department = 'Sales'`
+//	df, err := gp.Read_sql(query, config)
+//	// Result DataFrame:
+//	// employee_id | name  | department
+//	// 1          | John  | Sales
+//	// 2          | Alice | Sales
+//	// 3          | Bob   | Sales
+//
+// Note: Supports SQL Server and PostgreSQL-style connection strings.
 func (GoPandas) Read_sql(query string, db_config DbConfig) (*dataframe.DataFrame, error) {
 	DB, err := connect_to_db(&db_config)
 	if err != nil {
@@ -98,7 +144,35 @@ func (GoPandas) Read_sql(query string, db_config DbConfig) (*dataframe.DataFrame
 	}, nil
 }
 
-// QueryBigQuery executes a query on BigQuery and returns the result
+// QueryBigQuery executes a BigQuery SQL query and returns the results as a DataFrame.
+//
+// Parameters:
+//
+//	query: The BigQuery SQL query string to execute.
+//	projectID: The Google Cloud Project ID where the BigQuery dataset resides.
+//
+// Returns:
+//   - A pointer to a DataFrame containing the query results.
+//   - An error if the query execution fails or if there are issues with the BigQuery client.
+//
+// The DataFrame's structure will match the query results:
+//   - Columns will be named according to the SELECT statement
+//   - Data types will be converted from BigQuery types to Go types
+//
+// Examples:
+//
+//	gp := gpandas.GoPandas{}
+//	query := `SELECT name, age, city
+//	          FROM dataset.users
+//	          WHERE age > 25`
+//	df, err := gp.QueryBigQuery(query, "my-project-id")
+//	// Result DataFrame:
+//	// name    | age | city
+//	// Alice   | 30  | New York
+//	// Bob     | 35  | Chicago
+//	// Charlie | 28  | Boston
+//
+// Note: Requires appropriate Google Cloud credentials to be configured in the environment.
 func (GoPandas) QueryBigQuery(query string, projectID string) (*dataframe.DataFrame, error) {
 	ctx := context.Background()
 
