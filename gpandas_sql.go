@@ -87,8 +87,6 @@ func connect_to_db(db_config *DbConfig) (*sql.DB, error) {
 //	// 1          | John  | Sales
 //	// 2          | Alice | Sales
 //	// 3          | Bob   | Sales
-//
-// Note: Supports SQL Server and PostgreSQL-style connection strings.
 func (GoPandas) Read_sql(query string, db_config DbConfig) (*dataframe.DataFrame, error) {
 	DB, err := connect_to_db(&db_config)
 	if err != nil {
@@ -173,7 +171,7 @@ func (GoPandas) Read_sql(query string, db_config DbConfig) (*dataframe.DataFrame
 //	// Charlie | 28  | Boston
 //
 // Note: Requires appropriate Google Cloud credentials to be configured in the environment.
-func (GoPandas) QueryBigQuery(query string, projectID string) (*dataframe.DataFrame, error) {
+func (GoPandas) From_gbq(query string, projectID string) (*dataframe.DataFrame, error) {
 	ctx := context.Background()
 
 	client, err := bigquery.NewClient(ctx, projectID)

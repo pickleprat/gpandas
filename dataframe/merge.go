@@ -159,6 +159,9 @@ func (df *DataFrame) Merge(other *DataFrame, on string, how MergeHow) (*DataFram
 //	// This will merge df1 and df2 on the first column of each DataFrame,
 //	// returning only the rows with matching values in that column.
 func performInnerMerge(df1, df2 *DataFrame, df1ColIdx, df2ColIdx int, df2Map map[any][]int) [][]any {
+	if df1 == nil || df2 == nil {
+		return nil
+	}
 	var result [][]any
 	for _, row1 := range df1.Data {
 		key := row1[df1ColIdx]
@@ -200,6 +203,9 @@ func performInnerMerge(df1, df2 *DataFrame, df1ColIdx, df2ColIdx int, df2Map map
 //	// This will keep all rows from df1 and add matching columns from df2,
 //	// filling with nil values when there's no match in df2.
 func performLeftMerge(df1, df2 *DataFrame, df1ColIdx, df2ColIdx int, df2Map map[any][]int) [][]any {
+	if df1 == nil || df2 == nil {
+		return nil
+	}
 	var result [][]any
 	nullRow := make([]any, len(df2.Columns)-1)
 
@@ -246,6 +252,9 @@ func performLeftMerge(df1, df2 *DataFrame, df1ColIdx, df2ColIdx int, df2Map map[
 //	// This will keep all rows from df2 and add matching columns from df1,
 //	// filling with nil values when there's no match in df1.
 func performRightMerge(df1, df2 *DataFrame, df1ColIdx, df2ColIdx int, _ map[any][]int) [][]any {
+	if df1 == nil || df2 == nil {
+		return nil
+	}
 	// Create reverse mapping for df1
 	df1Map := make(map[any][]int)
 	for i, row := range df1.Data {
@@ -309,6 +318,9 @@ func performRightMerge(df1, df2 *DataFrame, df1ColIdx, df2ColIdx int, _ map[any]
 //	// This will keep all rows from both df1 and df2, matching where possible,
 //	// filling with nil values when there's no match in either DataFrame.
 func performFullMerge(df1, df2 *DataFrame, df1ColIdx, df2ColIdx int, df2Map map[any][]int) [][]any {
+	if df1 == nil || df2 == nil {
+		return nil
+	}
 	// Get all rows from left merge
 	result := performLeftMerge(df1, df2, df1ColIdx, df2ColIdx, df2Map)
 

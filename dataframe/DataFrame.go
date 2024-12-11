@@ -94,11 +94,11 @@ type DataFrame struct {
 //   - The operation modifies the DataFrame in place
 //   - Column order remains unchanged
 func (df *DataFrame) Rename(columns map[string]string) error {
+	if df == nil {
+		return errors.New("DataFrame is nil")
+	}
 	if len(columns) == 0 {
 		return errors.New("'columns' slice is empty. Slice of Maps to declare columns to rename is required")
-	}
-	if df == nil {
-		return errors.New("'df *DataFrame' param is nil. Supply a dataframe to rename columns")
 	}
 
 	keys, err := GetMapKeys[string, string](columns)
@@ -176,6 +176,9 @@ func (df *DataFrame) Rename(columns map[string]string) error {
 //   - All values are converted to strings using fmt.Sprintf("%v", val)
 //   - The table is rendered using the github.com/olekukonko/tablewriter package
 func (df *DataFrame) String() string {
+	if df == nil {
+		return "DataFrame is nil"
+	}
 	var buf bytes.Buffer
 	table := tablewriter.NewWriter(&buf)
 
