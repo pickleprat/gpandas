@@ -203,16 +203,15 @@ func (GoPandas) From_gbq(query string, projectID string) (*dataframe.DataFrame, 
 		columns = append(columns, col)
 	}
 
-	// Convert the first row into a slice ordered by the extracted columns
+	// first row in columns row
 	firstDataRow := make([]any, len(columns))
 	for i, col := range columns {
 		firstDataRow[i] = firstRow[col]
 	}
 
-	// Initialize the data with the first row
 	data := [][]any{firstDataRow}
 
-	// Process remaining rows
+	// Process actual data here
 	for {
 		var row map[string]bigquery.Value
 		err := it.Next(&row)

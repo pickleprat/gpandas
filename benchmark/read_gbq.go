@@ -9,7 +9,7 @@ import (
 func main() {
 	start := time.Now()
 	gp := gpandas.GoPandas{}
-	df, err := gp.From_gbq("SELECT * FROM `jm-ebg.Brokerage2024.RevenueTest`", "jm-ebg")
+	df, err := gp.From_gbq("SELECT * FROM `jm-ebg.Brokerage2024.RevenueNew`", "jm-ebg")
 	if err != nil {
 		fmt.Printf("Error reading from gbq: %v\n", err)
 		return

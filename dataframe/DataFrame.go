@@ -179,6 +179,7 @@ func (df *DataFrame) String() string {
 	if df == nil {
 		return "DataFrame is nil"
 	}
+
 	var buf bytes.Buffer
 	table := tablewriter.NewWriter(&buf)
 
@@ -193,23 +194,34 @@ func (df *DataFrame) String() string {
 	table.SetHeaderLine(true)
 	table.SetBorder(true)
 
-	// Set headers
+	// Set headers using the DataFrame's Columns
 	table.SetHeader(df.Columns)
 
-	// Convert data to strings and add to table
-	for _, row := range df.Data {
+	// Determine how many rows to display (maximum 10)
+	numRows := len(df.Data)
+	displayRows := numRows
+	if numRows > 10 {
+		displayRows = 10
+	}
+
+	// Append only the first displayRows rows to the table
+	for i := 0; i < displayRows; i++ {
+		row := df.Data[i]
 		stringRow := make([]string, len(row))
-		for i, val := range row {
-			stringRow[i] = fmt.Sprintf("%v", val)
+		for j, val := range row {
+			stringRow[j] = fmt.Sprintf("%v", val)
 		}
 		table.Append(stringRow)
 	}
 
-	// Add row count information
-	numRows := len(df.Data)
+	// Add row count information.
+	// If there are more than 10 rows, mention that only the first 10 are displayed.
 	shape := fmt.Sprintf("[%d rows x %d columns]", numRows, len(df.Columns))
+	if numRows > 10 {
+		shape = fmt.Sprintf("Showing first 10 rows of %d rows x %d columns", numRows, len(df.Columns))
+	}
 
-	// Render the table
+	// Render the table and return the string representation
 	table.Render()
 	return buf.String() + shape + "\n"
 }
