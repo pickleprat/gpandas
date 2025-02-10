@@ -11,6 +11,7 @@ require (
 	cloud.google.com/go/bigquery v1.65.0 // indirect
 	cloud.google.com/go/compute/metadata v0.5.2 // indirect
 	cloud.google.com/go/iam v1.2.2 // indirect
+	github.com/DATA-DOG/go-sqlmock v1.5.2 // indirect
 	github.com/apache/arrow/go/v15 v15.0.2 // indirect
 	github.com/denisenkom/go-mssqldb v0.12.3 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
@@ -27,6 +28,7 @@ require (
 	github.com/googleapis/gax-go/v2 v2.14.0 // indirect
 	github.com/klauspost/compress v1.16.7 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.5 // indirect
+	github.com/lib/pq v1.10.9 // indirect
 	github.com/mattn/go-runewidth v0.0.9 // indirect
 	github.com/pierrec/lz4/v4 v4.1.18 // indirect
 	github.com/zeebo/xxh3 v1.0.2 // indirect

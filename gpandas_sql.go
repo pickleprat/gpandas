@@ -16,28 +16,28 @@ import (
 //
 // NOTE: Prefer using env vars instead of hardcoding values
 type DbConfig struct {
-	database_server string
-	server          string
-	port            string
-	database        string
-	username        string
-	password        string
+	Database_server string
+	Server          string
+	Port            string
+	Database        string
+	Username        string
+	Password        string
 }
 
 func connect_to_db(db_config *DbConfig) (*sql.DB, error) {
 	var connString string
-	if db_config.database_server == "sqlserver" {
+	if db_config.Database_server == "sqlserver" {
 		connString = fmt.Sprintf(
 			"server=%s;user id=%s;password=%s;port=%s;database=%s",
-			db_config.server, db_config.username, db_config.password, db_config.port, db_config.database,
+			db_config.Server, db_config.Username, db_config.Password, db_config.Port, db_config.Database,
 		)
 	} else {
 		connString = fmt.Sprintf(
 			"host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
-			db_config.server, db_config.port, db_config.username, db_config.password, db_config.database,
+			db_config.Server, db_config.Port, db_config.Username, db_config.Password, db_config.Database,
 		)
 	}
-	DB, err := sql.Open(db_config.database_server, connString)
+	DB, err := sql.Open(db_config.Database_server, connString)
 	if err != nil {
 		fmt.Printf("%s", err)
 		return nil, err
@@ -181,20 +181,38 @@ func (GoPandas) From_gbq(query string, projectID string) (*dataframe.DataFrame, 
 	defer client.Close()
 
 	q := client.Query(query)
+	// q.UseStandardSQL = true  // Enable Standard SQL if needed
 	it, err := q.Read(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("query.Read: %v", err)
 	}
 
-	// Get column names
-	schema := it.Schema
-	columns := make([]string, len(schema))
-	for i, field := range schema {
-		columns[i] = field.Name
+	// Read the first row to determine column names
+	var firstRow map[string]bigquery.Value
+	err = it.Next(&firstRow)
+	if err == iterator.Done {
+		return nil, fmt.Errorf("no rows returned")
+	}
+	if err != nil {
+		return nil, fmt.Errorf("iterator.Next: %v", err)
 	}
 
-	var data [][]any
+	// Extract column names from the first row's keys
+	var columns []string
+	for col := range firstRow {
+		columns = append(columns, col)
+	}
 
+	// Convert the first row into a slice ordered by the extracted columns
+	firstDataRow := make([]any, len(columns))
+	for i, col := range columns {
+		firstDataRow[i] = firstRow[col]
+	}
+
+	// Initialize the data with the first row
+	data := [][]any{firstDataRow}
+
+	// Process remaining rows
 	for {
 		var row map[string]bigquery.Value
 		err := it.Next(&row)
@@ -205,12 +223,11 @@ func (GoPandas) From_gbq(query string, projectID string) (*dataframe.DataFrame, 
 			return nil, fmt.Errorf("iterator.Next: %v", err)
 		}
 
-		// Convert bigquery.Value to interface{}
+		// Build a row in the same column order
 		interfaceRow := make([]any, len(columns))
 		for i, col := range columns {
 			interfaceRow[i] = row[col]
 		}
-
 		data = append(data, interfaceRow)
 	}
 

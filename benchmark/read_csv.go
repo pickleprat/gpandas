@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-func main() {
+func readcsv() {
 	start := time.Now()
 	gp := gpandas.GoPandas{}
 	_, err := gp.Read_csv("./customers-2000000.csv")
