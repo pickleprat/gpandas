@@ -13,22 +13,22 @@ import (
 
 type GoPandas struct{}
 
-// FloatColumn represents a slice of float64 values.
+// FloatColumn represents a column slice of float64 values.
 type FloatCol []float64
 
-// StringColumn represents a slice of string values.
+// StringColumn represents a column slice of string values.
 type StringCol []string
 
-// IntColumn represents a slice of int64 values.
+// IntColumn represents a column slice of int64 values.
 type IntCol []int64
 
-// BoolColumn represents a slice of bool values.
+// BoolColumn represents a column slice of bool values.
 type BoolCol []bool
 
-// Column represents a slice of any type.
+// Column represents a column slice of any type.
 type Column []any
 
-// TypeColumn represents a slice of a comparable type T.
+// TypeColumn represents a column slice of a comparable type T.
 type TypeColumn[T comparable] []T
 
 func GetMapKeys[K comparable, V any](input_map map[K]V) (collection.Set[K], error) {
