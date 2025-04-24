@@ -16,5 +16,4 @@ func readcsv() {
 	}
 	elapsed := time.Since(start)
 	fmt.Printf("%f\n", elapsed.Seconds())
-
 }
